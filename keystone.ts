@@ -15,11 +15,11 @@ if (!sessionSecret) {
       'The SESSION_SECRET environment variable must be set in production'
     );
   } else {
-    sessionSecret = '-- DEV COOKIE SECRET; CHANGE ME --';
+    sessionSecret = 'JX8kC1xPZNuvJrabr4DXIP5cYLT43nRBzy0YSJTX';
   }
 }
 
-let sessionMaxAge = 60 * 60 * 24 * 30; // 30 days
+let sessionMaxAge = 60 * 60 * 24 * 360; // 1 year
 
 const auth = createAuth({
   listKey: 'User',
@@ -27,16 +27,31 @@ const auth = createAuth({
   secretField: 'password',
   initFirstItem: {
     fields: ['name', 'email', 'password'],
+    // TODO Add initial roles
   },
+  // TODO add password reset link
 });
 
 export default auth.withAuth(
   config({
+    server: {
+      cors: {
+        origin: [process.env.FRONTEND_URL as string],
+        credentials: true,
+      },
+    },
     db: {
-      adapter: 'prisma_postgresql',
-      url: process.env.DATABASE_URL || 'DATABASE_URL_TO_REPLACE',
+      adapter: 'mongoose',
+      url: process.env.DATABASE_URL as string,
+      onConnect: async (keystone) => {
+        console.log('🍃 Connecting to DB');
+        if (process.argv.includes('--seed-data')) {
+          // TODO await insertSeedData(keystone);
+        }
+      },
     },
     ui: {
+      // TODO: Tighten up with roles
       isAccessAllowed: (context) => !!context.session?.data,
     },
     lists,
@@ -45,7 +60,8 @@ export default auth.withAuth(
         maxAge: sessionMaxAge,
         secret: sessionSecret,
       }),
-      { User: 'name' }
+      // TODO Add permisionsList to user session
+      { User: 'name id email' }
     ),
   })
 );
